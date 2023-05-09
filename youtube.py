@@ -1,5 +1,5 @@
 from typing import Any
-
+import datetime
 import pytube
 from pytube import YouTube,Playlist,request
 from tkinter import  Menu, Misc, filedialog
@@ -35,28 +35,26 @@ class YouTubeDownloader:
         self._finish_event.clear()
         self.activeEvent=None
     def on_progress(self,chunk: bytes, file_handler:Any, bytes_remaining: int):
+            self.target.config(text=f"   downloading..  {0:3.3f}%   ".format(100*(1- float(bytes_remaining)/self.stream.filesize)))
             self._pause_event.wait()
-            if self._stop_event.is_set():
+            if self._stop_event.is_set():   
                 raise DownloadPaused('Download stoped')
-            #self.activeEvent(self._pause_event.is_set())
-            #self.downloaded+=(len(chunk))
-            self.target.config(text=f"downloading..{1- bytes_remaining/self.stream.filesize}%")
-            print(bytes_remaining/self.filesize)
+            #print(bytes_remaining/self.filesize)
             pass
     def on_complete(self,Any,file_path: str | None):
-            print(file_path)
+            #print(file_path)
             pass
             
     def _download_thread(self, filepath):
-        print("first video")
+        #print("first video")
         if self.stream==None and self.video!=None:
-            print("filter: ",self.filter.get())
-            print(self.video.streams)
+            #print("filter: ",self.filter.get())
+            #print(self.video.streams)
             self.filter:StringVar
             streams = self.video.streams.filter(res=self.filter.get(),progressive=True)
             if(len(streams)==0):
                 self.stream = self.video.streams.get_highest_resolution()
-                print(self.stream)
+                #print(self.stream)
             else:
                 self.stream = streams.first()
             
@@ -77,19 +75,6 @@ class YouTubeDownloader:
         #self.stream.on_complete = on_complete
         filepath = filepath+".mp4"
         self.stream.download(filename=filepath)
-        if False:
-            with open(filepath, 'wb') as f:
-                self.stream:pytube.Stream
-                for chunk in self.stream.on_progress():
-                    if self._stop_event.is_set():
-                        self._finish_event.set()
-                        break
-                    self._pause_event.wait()
-                    f.write(chunk)
-                    self.downloaded += len(chunk)
-
-                    if self.downloaded == self.filesize:
-                        break
         self._finish_event.set()
     def start_download(self, filepath):
         self._stop_event.clear()
@@ -188,7 +173,7 @@ class DownloadList(Toplevel):
         downloadThread = threading.Thread(target= self.DownloadThread)
         downloadThread.start()
     def Build(self,DList):
-        for vid in DList:
+        for i,vid in DList:
             f=Frame(self)
             f.pack(side=TOP)
             v = YouTubeDownloader(self,youtubeV=vid,filter=self.filter)
@@ -206,15 +191,17 @@ class DownloadList(Toplevel):
             b2.pack(side=RIGHT)
             b2["state"] = DISABLED
             b3=Button(f,text="pause",command=v.pause_download)
-            b3.pack(side=RIGHT)
+            b3.pack(side=RIGHT) 
             b3["state"] = DISABLED
-            self.downloadList.append((l2 ,v,b1,b2,b3,vid.title))
+            self.downloadList.append((l2 ,v,b1,b2,b3,str(i+1)+" "+vid.title))
             
     def DownloadThread(self):
         
         path = filedialog.askdirectory()
-
-        path = path+f"/{self.title}"
+        if path=="":return
+        print(path)
+        title = self.title.replace("/","_")
+        path = path+f"/{title}"
         if not os.path.isdir(path):
             os.mkdir(path)
             pass 
@@ -222,6 +209,7 @@ class DownloadList(Toplevel):
         for L,DE,b1,b2,b3,t in self.downloadList:
             L:Label
             DE:YouTubeDownloader
+            t:str = t.replace("/","_")
             DE.start_download(path+f"/{t}")
             b1["state"] = NORMAL
             b2["state"] = NORMAL
@@ -234,6 +222,7 @@ class DownloadList(Toplevel):
             b1["state"] = DISABLED
             b2["state"] = DISABLED
             b2["state"] = DISABLED
+        self.destroy()
             
             
 
@@ -275,9 +264,8 @@ class Youtube_List(Frame):
         self.l.update()
     def getSelectedStream(self):
         self.download=[]
-        videos=[]
         for i in self.l.curselection():
-            self.download.append(self.videos[i])
+            self.download.append((i,self.videos[i]))
         self.DL = DownloadList(self.filter,self.download,self.list.title ,root)
         
     def findRes(self):
@@ -298,9 +286,9 @@ class Youtube_List(Frame):
             loadingL.config(text=f"Loading Videos.....{i}/{count}")
             v.__setattr__('use_oauth', True)
             v.__setattr__('allow_oauth_cache',True)
-            titleList.append(v.title)
+            titleList.append("{0:4.0f}".format(i)+"   "+str(datetime.timedelta(seconds=v.length))+":  "+v.title)
         for i,v in enumerate(titleList):
-            self.l.insert(i,str(i)+v)
+            self.l.insert(i,v )
         loadingL.pack_forget()
         
     def CreateFrame(self):
