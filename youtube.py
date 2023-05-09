@@ -204,7 +204,7 @@ class DownloadList(Toplevel):
         path = path+f"/{self.title}"
         if not os.path.isdir(path):
             os.mkdir(path)
-            pass
+            pass 
         print(path)
         for L,DE,b1,b2,b3,t in self.downloadList:
             L:Label
