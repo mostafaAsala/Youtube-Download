@@ -47,7 +47,11 @@ class YouTubeDownloader:
     def _download_thread(self, filepath):
         print("first video")
         if self.stream==None and self.video!=None:
-            self.stream = self.video.streams.filter(res=self.filter,progressive=True).first()
+            streams = self.video.streams.filter(res=self.filter,progressive=True)
+            if(len(streams)==0):
+                self.stream = self.video.streams.filter(progressive=True).get_highest_resolution()
+            else:
+                self.stream = streams.first()
         if self.video==None and self.stream==None:
             print("No data prvided.....")
             return
