@@ -51,12 +51,15 @@ class YouTubeDownloader:
         print("first video")
         if self.stream==None and self.video!=None:
             print("filter: ",self.filter.get())
+            print(self.video.streams)
             self.filter:StringVar
             streams = self.video.streams.filter(res=self.filter.get(),progressive=True)
             if(len(streams)==0):
-                self.stream = self.video.streams.filter().get_highest_resolution()
+                self.stream = self.video.streams.get_highest_resolution()
+                print(self.stream)
             else:
                 self.stream = streams.first()
+            
         if self.video==None and self.stream==None:
             print("No data prvided.....")
             return
