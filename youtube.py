@@ -27,17 +27,21 @@ class YouTubeDownloader:
         self.stream = stream
         self.filesize = None
         self.downloaded = 0
+        self.target:Label=None
         self._stop_event = threading.Event()
         self._pause_event = threading.Event()
         self._stop_event.clear()
         self._pause_event.set()
         self._finish_event = threading.Event()
         self._finish_event.clear()
+        self.activeEvent=None
     def on_progress(self,chunk: bytes, file_handler:Any, bytes_remaining: int):
             self._pause_event.wait()
             if self._stop_event.is_set():
-                raise DownloadPaused('Download paused')
-            
+                raise DownloadPaused('Download stoped')
+            #self.activeEvent(self._pause_event.is_set())
+            #self.downloaded+=(len(chunk))
+            self.target.config(text=f"downloading..{1- bytes_remaining/self.stream.filesize}%")
             print(bytes_remaining/self.filesize)
             pass
     def on_complete(self,Any,file_path: str | None):
@@ -47,9 +51,11 @@ class YouTubeDownloader:
     def _download_thread(self, filepath):
         print("first video")
         if self.stream==None and self.video!=None:
-            streams = self.video.streams.filter(res=self.filter,progressive=True)
+            print("filter: ",self.filter.get())
+            self.filter:StringVar
+            streams = self.video.streams.filter(res=self.filter.get(),progressive=True)
             if(len(streams)==0):
-                self.stream = self.video.streams.filter(progressive=True).get_highest_resolution()
+                self.stream = self.video.streams.filter().get_highest_resolution()
             else:
                 self.stream = streams.first()
         if self.video==None and self.stream==None:
@@ -169,7 +175,7 @@ class Youtube_Video(Frame):
         for i in resList:
             Radiobutton(f2,text=i,variable=self.filter,value=i,command=self.selres).pack(side='left')
         self.filter.set('144p')
-        Button(self,text="Downlad",command=self.getSelectedStream).pack()
+        Button(self,text="Download",command=self.getSelectedStream).pack()
 class DownloadList(Toplevel):
     def __init__(self,filter,DList,Title="", master: Misc | None = None):
         super().__init__(master)
@@ -182,22 +188,23 @@ class DownloadList(Toplevel):
     def Build(self,DList):
         for vid in DList:
             f=Frame(self)
+            f.pack(side=TOP)
             v = YouTubeDownloader(self,youtubeV=vid,filter=self.filter)
             f2 = Frame(f)
             f2.pack(side=TOP)
 
             l1=Label(f2,text=vid.title)
-            l1.pack(side=RIGHT)
-            l2=Label(f2,text="pending..")
+            l1.pack(side=LEFT)
+            l2=Label(f2,text="pending......")
             l2.pack(side=RIGHT)
             b1=Button(f,text="resume",command=v.resume_download)
-            b1.pack()
+            b1.pack(side=RIGHT)
             b1["state"] = DISABLED
             b2=Button(f,text="stop",command=v.stop_download)
-            b2.pack()
+            b2.pack(side=RIGHT)
             b2["state"] = DISABLED
             b3=Button(f,text="pause",command=v.pause_download)
-            b3.pack()
+            b3.pack(side=RIGHT)
             b3["state"] = DISABLED
             self.downloadList.append((l2 ,v,b1,b2,b3,vid.title))
             
@@ -217,9 +224,10 @@ class DownloadList(Toplevel):
             b1["state"] = NORMAL
             b2["state"] = NORMAL
             b3["state"] = NORMAL
+            DE.target = L
             while not DE._finish_event.is_set():
                 time.sleep(1)
-                L.config(text=f"Downloading {DE.downloaded}/{DE.filesize}")
+                
             L.config(text=f"finished")
             b1["state"] = DISABLED
             b2["state"] = DISABLED
@@ -268,7 +276,7 @@ class Youtube_List(Frame):
         videos=[]
         for i in self.l.curselection():
             self.download.append(self.videos[i])
-        self.DL = DownloadList(self.filter,self.download,self.list.title ,self)
+        self.DL = DownloadList(self.filter,self.download,self.list.title ,root)
         
     def findRes(self):
         if self.filter in resList:
@@ -324,7 +332,7 @@ class Youtube_List(Frame):
         for i in resList:
             Radiobutton(f2,text=i,variable=self.filter,value=i).pack(side='left')
         self.filter.set('144p')
-        Button(self,text="Downlad",command=self.getSelectedStream).pack()
+        Button(self,text="Download",command=self.getSelectedStream).pack()
           
 globalText = ""
 def getText():
